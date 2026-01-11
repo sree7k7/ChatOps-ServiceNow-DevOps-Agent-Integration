@@ -1,8 +1,3 @@
-
-
-
-
-
 ## Architecture Diagram 
 
 
