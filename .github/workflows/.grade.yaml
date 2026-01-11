@@ -45,6 +45,4 @@ jobs:
       # 5. The "Hyper-Fast" Deployment
       - name: Deploy with AWS CDK
         # We use 'npx' to avoid a separate 'npm install -g' step
-        # --method=direct: Skips CloudFormation change-set creation (~45s saved)
-        # --no-version-reporting: Skips telemetry checks (~5s saved)
         run: npx aws-cdk deploy --all --require-approval never --method=direct --no-version-reporting
