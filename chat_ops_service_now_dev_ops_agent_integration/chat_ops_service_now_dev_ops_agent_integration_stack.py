@@ -84,7 +84,7 @@ class ChatOpsServiceNowDevOpsAgentIntegrationStack(Stack):
             function_name="servicenow_devops_middleman_lambda",
             runtime=_lambda.Runtime.PYTHON_3_13,
             handler="servicenow-devops-middleman.lambda_handler",
-            # code=_lambda.Code.from_asset("lambda"),
+            code=_lambda.Code.from_asset("lambda"),
             environment={
                 "SECRET_ARN": secret.secret_arn
             },
