@@ -64,9 +64,9 @@ jobs:
     #       uv pip install -r requirements.txt
     #       cdk --version
 
-      # - name: Synthesize CloudFormation template
-      #   working-directory: infrastructure
-      #   run: uv run cdk synth
+      - name: Synthesize CloudFormation template
+        working-directory: infrastructure
+        run: uv run cdk synth
 
       - name: Deploy with AWS CDK
         working-directory: infrastructure
