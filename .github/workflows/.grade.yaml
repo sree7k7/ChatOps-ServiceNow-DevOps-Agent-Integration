@@ -1,18 +1,15 @@
 # .github/workflows/deploy-to-aws.yml
-
 name: Deploy to AWS
 
-# This workflow runs on every push to the 'main' branch
 on:
   push:
     branches:
       - main
       - master
 
-# These permissions are required for the OIDC token exchange and code checkout.
 permissions:
-  id-token: write # This is required to get the OIDC JWT token
-  contents: read  # This is required to checkout the repository's code
+  id-token: write 
+  contents: read
 
 jobs:
   deploy:
@@ -21,32 +18,34 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      # --- SETUP UV ---
+
+      # 1. Faster Python & Dependency Management
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
-          enable-cache: true
+          enable-cache: true # Uses GitHub's cache for your python libs
 
+      # 2. AWS Authentication
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          # The ARN of the role you created in the AWS IAM console
           role-to-assume: arn:aws:iam::230150030147:role/aws-to-github
-          # The AWS region to deploy to
-          aws-region: us-east-1 # Change this to your desired region
+          aws-region: us-east-1
 
+      # 3. Setup Node.js (with caching for npx/npm)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm' # Speeds up the CDK CLI fetching
 
-      - name: Install CDK CLI
-        run: npm install -g aws-cdk@latest
-
-      # --- THE UV WAY ---
+      # 4. Sync dependencies based on your uv.lock
       - name: Install Dependencies
-        run: uv sync --frozen # this installs dependencies based on your lockfile (uv.lock)
+        run: uv sync --frozen
 
+      # 5. The "Hyper-Fast" Deployment
       - name: Deploy with AWS CDK
-        # 'uv run' ensures the deploy uses the exact libraries in your lockfile
-        run: uv run cdk deploy --all --require-approval never
+        # We use 'npx' to avoid a separate 'npm install -g' step
+        # --method=direct: Skips CloudFormation change-set creation (~45s saved)
+        # --no-version-reporting: Skips telemetry checks (~5s saved)
+        run: npx aws-cdk deploy --all --require-approval never --method=direct --no-version-reporting
