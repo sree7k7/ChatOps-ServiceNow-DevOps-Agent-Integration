@@ -34,7 +34,7 @@ class ChatOpsServiceNowDevOpsAgentIntegrationStack(Stack):
             log_group_name="/aws/apigateway/ApiGatewayToSQSRole"
         )
 
-        # Create IAM Role for API Gateway CloudWatch Logging.
+        # Create IAM Role for API Gateway CloudWatch Logging
         api_gateway_log_role = iam.Role(
             self, "ApiGatewayCloudWatchLogRole",
             assumed_by=iam.ServicePrincipal("apigateway.amazonaws.com"),
@@ -143,7 +143,6 @@ class ChatOpsServiceNowDevOpsAgentIntegrationStack(Stack):
         )
 
         # Attach the integration to a resource and method, allowing POST requests
-        # explain this line: 
         # This line adds a new resource path "/servicenow_devops_middleman_lambda" to the API Gateway.
         # It then associates a POST method with this resource.
         # The POST method is configured to use the previously defined `integration` (which sends messages to SQS).

@@ -1,0 +1,73 @@
+# .github/workflows/deploy-to-aws.yml
+
+name: Deploy to AWS
+
+# This workflow runs on every push to the 'main' branch
+on:
+  push:
+    branches:
+      - main
+
+# These permissions are required for the OIDC token exchange and code checkout.
+permissions:
+  id-token: write # This is required to get the OIDC JWT token
+  contents: read  # This is required to checkout the repository's code
+
+jobs:
+  deploy:
+    name: Deploy to AWS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # The ARN of the role you created in the AWS IAM console
+          role-to-assume: arn:aws:iam::230150030147:role/aws-to-github
+          # The AWS region to deploy to
+          aws-region: us-east-1 # Change this to your desired region
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+# It installs uv binary instantly and handles caching of your dependencies automatically.
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          # Tells the cache to invalidate if your requirements file changes
+          cache-dependency-glob: "infrastructure/requirements.txt"
+
+      # --- AWS CDK-PY DEPLOYMENT STEPS ---
+      # This example deploys an AWS CDK Python application.
+      # It assumes a standard CDK project structure with a requirements.txt file.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install -g aws-cdk@latest
+
+      # - name: Install frontend dependencies
+      #   working-directory: frontend
+      #   run: npm install
+
+    #   - name: Install dependencies
+    #     working-directory: infrastructure
+    #     run: |
+    #       # pip install uv
+    #       uv venv
+    #       uv pip install -r requirements.txt
+    #       cdk --version
+
+      # - name: Synthesize CloudFormation template
+      #   working-directory: infrastructure
+      #   run: uv run cdk synth
+
+      - name: Deploy with AWS CDK
+        working-directory: infrastructure
+        run: cdk deploy --all --require-approval never
