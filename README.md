@@ -1,10 +1,10 @@
 ChatOps: Slack, servicenow - aws devops agent, serverless (lambda) middleware 
 
 # Official GitHub Badge
-[![Deploy to AWS](https://github.com/sree7k7/ChatOps-ServiceNow-DevOps-Agent-Integration/actions/workflows/deploy.yaml/badge.svg?branch=main)](https://github.com/sree7k7/ChatOps-ServiceNow-DevOps-Agent-Integration/actions/workflows/deploy.yaml)
+[![Deploy to AWS](https://github.com/sree7k7/ChatOps-ServiceNow-DevOps-Agent-Integration/actions/workflows/deploy.yaml/badge.svg?branch=master)](https://github.com/sree7k7/ChatOps-ServiceNow-DevOps-Agent-Integration/actions/workflows/deploy.yaml)
 
 # Shields.io Badge (Faster & More Reliable)
-![Build Status](https://img.shields.io/github/actions/workflow/status/sree7k7/ChatOps-ServiceNow-DevOps-Agent-Integration/deploy.yaml?branch=main&label=AWS%20Deploy&style=flat-square)
+![Build Status](https://img.shields.io/github/actions/workflow/status/sree7k7/ChatOps-ServiceNow-DevOps-Agent-Integration/deploy.yaml?branch=master&label=AWS%20Deploy&style=flat-square)
 
 ## Run
 
