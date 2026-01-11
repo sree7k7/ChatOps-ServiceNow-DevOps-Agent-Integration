@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - main
+      - master
 
 # These permissions are required for the OIDC token exchange and code checkout.
 permissions:
