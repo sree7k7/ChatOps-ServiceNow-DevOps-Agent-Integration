@@ -37,7 +37,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm' # Speeds up the CDK CLI fetching
 
       # 4. Sync dependencies based on your uv.lock
       - name: Install Dependencies
