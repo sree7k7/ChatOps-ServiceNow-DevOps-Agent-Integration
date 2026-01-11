@@ -1,6 +1,7 @@
 ChatOps: Slack, servicenow - aws devops agent, serverless (lambda) middleware 
 
 [![Deploy to AWS](https://github.com/sree7k7/ChatOps-ServiceNow-DevOps-Agent-Integration/actions/workflows/.grade.yaml/badge.svg)](https://github.com/sree7k7/ChatOps-ServiceNow-DevOps-Agent-Integration/actions/workflows/.grade.yaml)
+![Build Status](https://img.shields.io/github/actions/workflow/status/sree7k7/ChatOps-ServiceNow-DevOps-Agent-Integration/deploy.yml?branch=main&label=AWS%20Deploy&style=flat-square)
 
 ## Run
 
