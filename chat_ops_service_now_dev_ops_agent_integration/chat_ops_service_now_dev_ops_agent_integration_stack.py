@@ -34,7 +34,7 @@ class ChatOpsServiceNowDevOpsAgentIntegrationStack(Stack):
             log_group_name="/aws/apigateway/ApiGatewayToSQSRole"
         )
 
-        # Create IAM Role for API Gateway CloudWatch Logging
+        # Create IAM Role for API Gateway CloudWatch Logging.
         api_gateway_log_role = iam.Role(
             self, "ApiGatewayCloudWatchLogRole",
             assumed_by=iam.ServicePrincipal("apigateway.amazonaws.com"),
