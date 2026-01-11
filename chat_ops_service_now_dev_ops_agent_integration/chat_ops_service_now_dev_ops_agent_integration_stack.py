@@ -142,7 +142,7 @@ class ChatOpsServiceNowDevOpsAgentIntegrationStack(Stack):
             )
         )
 
-        # Attach the integration to a resource and method, allowing POST requests
+        # Attach the integration to a resource and method, allowing POST requests.
         # This line adds a new resource path "/servicenow_devops_middleman_lambda" to the API Gateway.
         # It then associates a POST method with this resource.
         # The POST method is configured to use the previously defined `integration` (which sends messages to SQS).
