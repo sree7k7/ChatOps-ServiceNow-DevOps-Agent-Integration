@@ -35,9 +35,6 @@ jobs:
           # The AWS region to deploy to
           aws-region: us-east-1 # Change this to your desired region
 
-      # --- AWS CDK-PY DEPLOYMENT STEPS ---
-      # This example deploys an AWS CDK Python application.
-      # It assumes a standard CDK project structure with a requirements.txt file.
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
