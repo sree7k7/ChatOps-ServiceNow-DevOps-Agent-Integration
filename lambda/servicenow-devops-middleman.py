@@ -32,7 +32,7 @@ def lambda_handler(event, context):
     # Handle SQS Records or Direct Invocation
     if 'Records' in event:
         # SQS Batch
-        for record in event['Records']:-
+        for record in event['Records']:
             try:
                 payload = json.loads(record['body'])
                 process_incident(payload, WEBHOOK_URL, SECRET_STRING)
