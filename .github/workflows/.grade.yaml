@@ -30,19 +30,6 @@ jobs:
           # The AWS region to deploy to
           aws-region: us-east-1 # Change this to your desired region
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-
-# It installs uv binary instantly and handles caching of your dependencies automatically.
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          # Tells the cache to invalidate if your requirements file changes
-          # cache-dependency-glob: "infrastructure/requirements.txt"
-
       # --- AWS CDK-PY DEPLOYMENT STEPS ---
       # This example deploys an AWS CDK Python application.
       # It assumes a standard CDK project structure with a requirements.txt file.
