@@ -40,7 +40,7 @@ jobs:
         with:
           enable-cache: true
           # Tells the cache to invalidate if your requirements file changes
-          cache-dependency-glob: "infrastructure/requirements.txt"
+          # cache-dependency-glob: "infrastructure/requirements.txt"
 
       # --- AWS CDK-PY DEPLOYMENT STEPS ---
       # This example deploys an AWS CDK Python application.
@@ -56,13 +56,13 @@ jobs:
       #   working-directory: frontend
       #   run: npm install
 
-      - name: Install dependencies
-        working-directory: infrastructure
-        run: |
-          # pip install uv
-          uv venv
-          uv pip install -r requirements.txt
-          cdk --version
+    #   - name: Install dependencies
+    #     working-directory: infrastructure
+    #     run: |
+    #       # pip install uv
+    #       uv venv
+    #       uv pip install -r requirements.txt
+    #       cdk --version
 
       # - name: Synthesize CloudFormation template
       #   working-directory: infrastructure
@@ -70,4 +70,4 @@ jobs:
 
       - name: Deploy with AWS CDK
         working-directory: infrastructure
-        run: uv run cdk deploy --all --require-approval never
+        run: cdk deploy --all --require-approval never
