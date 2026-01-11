@@ -56,18 +56,18 @@ jobs:
       #   working-directory: frontend
       #   run: npm install
 
-    #   - name: Install dependencies
-    #     working-directory: infrastructure
-    #     run: |
-    #       # pip install uv
-    #       uv venv
-    #       uv pip install -r requirements.txt
-    #       cdk --version
-
-      - name: Synthesize CloudFormation template
+      - name: Install dependencies
         working-directory: infrastructure
-        run: uv run cdk synth
+        run: |
+          # pip install uv
+          uv venv
+          uv pip install -r requirements.txt
+          cdk --version
+
+      # - name: Synthesize CloudFormation template
+      #   working-directory: infrastructure
+      #   run: uv run cdk synth
 
       - name: Deploy with AWS CDK
         working-directory: infrastructure
-        run: cdk deploy --all --require-approval never
+        run: uv run cdk deploy --all --require-approval never
