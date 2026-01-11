@@ -51,24 +51,13 @@ jobs:
         with:
           node-version: 20
 
-      - run: npm install -g aws-cdk@latest
+      - name: Install CDK CLI
+        run: npm install -g aws-cdk@latest
 
-      # - name: Install frontend dependencies
-      #   working-directory: frontend
-      #   run: npm install
-
-    #   - name: Install dependencies
-    #     working-directory: infrastructure
-    #     run: |
-    #       # pip install uv
-    #       uv venv
-    #       uv pip install -r requirements.txt
-    #       cdk --version
-
-      # - name: Synthesize CloudFormation template
-      #   working-directory: infrastructure
-      #   run: uv run cdk synth
+      # --- THE UV WAY ---
+      - name: Install Dependencies
+        run: uv sync --frozen # this installs dependencies based on your lockfile (uv.lock)
 
       - name: Deploy with AWS CDK
-        working-directory: infrastructure
-        run: cdk deploy --all --require-approval never
+        # 'uv run' ensures the deploy uses the exact libraries in your lockfile
+        run: uv run cdk deploy --all --require-approval never
