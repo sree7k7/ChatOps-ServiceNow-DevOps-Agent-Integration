@@ -6,13 +6,8 @@ import time
 import base64
 import logging
 from urllib.parse import parse_qs
-
-# --- CONFIGURATION (CHECK THESE!) ---
-SLACK_SIGNING_SECRET = "YOUR_SLACK_SECRET_HERE" 
-SN_INSTANCE = "dev282699"   # Make sure this matches your URL exactly
-SN_USER = "admin"
-SN_PASS = "YOUR_SN_PASSWORD_HERE"
-# ---------------------
+import boto3
+import os
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -29,6 +24,17 @@ def verify_slack_signature(headers, body, secret):
 
 def lambda_handler(event, context):
     try:
+        # Retrieve secrets
+        secret_arn = os.environ['SECRET_ARN']
+        client = boto3.client('secretsmanager')
+        response = client.get_secret_value(SecretId=secret_arn)
+        secrets = json.loads(response['SecretString'])
+        
+        SLACK_SIGNING_SECRET = secrets['slack_signing_secret']
+        SN_INSTANCE = secrets['sn_instance']
+        SN_USER = secrets['sn_user']
+        SN_PASS = secrets['sn_pass']
+
         # 1. Parse Slack Input
         headers = {k.lower(): v for k, v in event['headers'].items()}
         raw_body = event.get('body', '')

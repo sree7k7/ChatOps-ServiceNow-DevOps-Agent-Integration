@@ -68,6 +68,7 @@ class slack_to_servicenow_devops_agent_integration(Stack):
                 )
             )
         )
+
         ## secrets manager
         secret = secretsmanager.Secret(
             self, "SlackToSnowBotSecret",
@@ -82,8 +83,6 @@ class slack_to_servicenow_devops_agent_integration(Stack):
                 generate_string_key="dummy"
             )
         )
-        secret.grant_read(api_gateway_role)
-
 
         ## receiver middleware lambda
         receiver_lambda = _lambda.Function(
@@ -97,6 +96,7 @@ class slack_to_servicenow_devops_agent_integration(Stack):
                 "SECRET_ARN": secret.secret_arn
             }
         )
+
         secret.grant_read(receiver_lambda)
 
         ## intergration between api gateway and receiver lambda. api_gateway -> receiver_lambda
