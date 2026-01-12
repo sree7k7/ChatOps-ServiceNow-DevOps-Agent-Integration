@@ -12,40 +12,43 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 http = urllib3.PoolManager()
 
+# --- OPTIMIZATION 1: Initialize Client Globally (Warm Starts) ---
+# This makes subsequent executions faster
+SECRETS_CLIENT = boto3.client('secretsmanager')
+
 def lambda_handler(event, context):
     try:
         # Retrieve secrets
         secret_arn = os.environ['SECRET_ARN']
-        client = boto3.client('secretsmanager')
-        response = client.get_secret_value(SecretId=secret_arn)
+        
+        # Using global client
+        response = SECRETS_CLIENT.get_secret_value(SecretId=secret_arn)
         secrets = json.loads(response['SecretString'])
         WEBHOOK_URL = secrets['webhook_url']
         SECRET_STRING = secrets['secret_string']
 
-        # Log the retrieved configuration to confirm Secrets Manager integration
-        logger.info(f"Configuration loaded. Webhook URL: {WEBHOOK_URL}")
+        # Security Note: Don't log the full URL if it contains sensitive IDs
+        logger.info("Configuration loaded successfully.")
 
     except Exception as e:
         logger.error(f"Secret retrieval failed: {str(e)}")
         raise e
 
-    # Handle SQS Records or Direct Invocation
+    # --- HANDLE INVOCATION ---
     if 'Records' in event:
-        # SQS Batch
+        # CASE A: SQS Trigger (Production)
         for record in event['Records']:
-            try:
-                payload = json.loads(record['body'])
-                process_incident(payload, WEBHOOK_URL, SECRET_STRING)
-            except Exception as e:
-                logger.error(f"Error processing record: {str(e)}")
+            # --- CRITICAL FIX 2: No Try/Except here ---
+            # We want the Lambda to CRASH if processing fails.
+            # This signals SQS to keep the message and retry later.
+            payload = json.loads(record['body'])
+            process_incident(payload, WEBHOOK_URL, SECRET_STRING)
+            
         return {'statusCode': 200, 'body': "Batch processed"}
     else:
-        # Direct Invocation (API Gateway or Test)
+        # CASE B: Direct Invocation (Test/API Gateway Direct)
         try:
-            if 'body' in event:
-                body = json.loads(event['body']) if isinstance(event['body'], str) else event['body']
-            else:
-                body = event
+            body = json.loads(event['body']) if 'body' in event and isinstance(event['body'], str) else event.get('body', event)
             process_incident(body, WEBHOOK_URL, SECRET_STRING)
             return {'statusCode': 200, 'body': "Success"}
         except Exception as e:
@@ -53,6 +56,7 @@ def lambda_handler(event, context):
             return {'statusCode': 500, 'body': str(e)}
 
 def process_incident(body, WEBHOOK_URL, SECRET_STRING):
+    # (This logic is perfect, no changes needed)
     try:
         inc_data = body.get('incident', body)
         inc_id = inc_data.get('number', 'UNKNOWN')
@@ -60,10 +64,7 @@ def process_incident(body, WEBHOOK_URL, SECRET_STRING):
         # --- SMART LOGIC ---
         event_type = body.get('event_type', 'incident_created')
         
-        # Default to 'created'
         aws_action = "created" 
-        
-        # Explicitly handle Resolution
         if "resolve" in event_type or "close" in event_type:
             aws_action = "resolved"
             logger.info(f"Resolving Incident: {inc_id}")
@@ -103,9 +104,12 @@ def process_incident(body, WEBHOOK_URL, SECRET_STRING):
         response = http.request('POST', WEBHOOK_URL, body=payload_str, headers=headers)
         
         if response.status < 200 or response.status >= 300:
+            # Raising this exception ensures SQS retries the message!
             raise Exception(f"AWS Webhook returned error: {response.status} - {response.data.decode('utf-8')}")
             
-        logger.info(f"Sent to AWS: {response.status}")
+        logger.info(f"Sent {inc_id} to AWS: {response.status}")
+        
     except Exception as e:
-        logger.error(f"Logic Error: {str(e)}")
+        logger.error(f"Logic Error for {inc_id}: {str(e)}")
+        # We re-raise the error so the Lambda fails and SQS Retries happen
         raise e
