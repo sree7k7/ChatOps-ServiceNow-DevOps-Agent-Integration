@@ -76,7 +76,7 @@ class ChatOpsServiceNowDevOpsAgentIntegrationStack(Stack):
             self, "ServiceNowDevOpsMiddlemanLogGroup",
             retention=logs.RetentionDays.ONE_DAY,
             removal_policy=RemovalPolicy.DESTROY,
-            log_group_name="/aws/lambda/slack-to-servicenow-devops-middleman"
+            log_group_name="/aws/lambda/servicenow-devops-middleman"
         )
 
         ## Lambda function for ServiceNow DevOps Middleware
@@ -102,8 +102,8 @@ class ChatOpsServiceNowDevOpsAgentIntegrationStack(Stack):
         ## REST API
         ## security is OPEN
         api = apigateway.RestApi(
-            self, "SlackToServiceNowBotApi",
-            rest_api_name="SlackToServiceNowBot-API",
+            self, "ServiceNowtoDevOpsMiddlemanBotApi",
+            rest_api_name="ServiceNowtoDevOpsMiddlemanBot-API",
             description="Created by AWS Lambda",
             api_key_source_type=apigateway.ApiKeySourceType.HEADER,
             endpoint_configuration=apigateway.EndpointConfiguration(
