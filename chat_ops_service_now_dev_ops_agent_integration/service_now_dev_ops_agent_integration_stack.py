@@ -73,19 +73,19 @@ class ChatOpsServiceNowDevOpsAgentIntegrationStack(Stack):
 
         ## add logs for lambda
         middleware_log_group = logs.LogGroup(
-            self, "ServiceNowDevOpsMiddlemanLogGroup",
+            self, "ServiceNowDevOpsmiddlewareLogGroup",
             retention=logs.RetentionDays.ONE_DAY,
             removal_policy=RemovalPolicy.DESTROY,
-            log_group_name="/aws/lambda/servicenow-devops-middleman"
+            log_group_name="/aws/lambda/servicenow-devops-middleware"
         )
 
         ## Lambda function for ServiceNow DevOps Middleware
 
-        servicenow_devops_middleman_lambda = _lambda.Function(
-            self, "ServiceNowDevOpsMiddlemanLambda",
-            function_name="servicenow_devops_middleman_lambda",
-            runtime=_lambda.Runtime.PYTHON_3_13,
-            handler="servicenow-devops-middleman.lambda_handler",
+        servicenow_devops_middleware_lambda = _lambda.Function(
+            self, "ServiceNowDevOpsmiddlewareLambda",
+            function_name="servicenow_devops_middleware_lambda",
+            runtime=_lambda.Runtime.PYTHON_3_12,
+            handler="servicenow-devops-middleware.lambda_handler",
             code=_lambda.Code.from_asset("lambda"),
             environment={
                 "SECRET_ARN": secret.secret_arn
@@ -95,15 +95,15 @@ class ChatOpsServiceNowDevOpsAgentIntegrationStack(Stack):
             system_log_level_v2=_lambda.SystemLogLevel.INFO,
             application_log_level_v2=_lambda.ApplicationLogLevel.INFO,
         )
-        secret.grant_read(servicenow_devops_middleman_lambda)
+        secret.grant_read(servicenow_devops_middleware_lambda)
 
 
         ## Trigger lambda function using API Gateway when HTTP request is received
         ## REST API
         ## security is OPEN
         api = apigateway.RestApi(
-            self, "ServiceNowtoDevOpsMiddlemanBotApi",
-            rest_api_name="ServiceNowtoDevOpsMiddlemanBot-API",
+            self, "ServiceNowtoDevOpsmiddlewareBotApi",
+            rest_api_name="ServiceNowtoDevOpsmiddlewareBot-API",
             description="Created by AWS Lambda",
             api_key_source_type=apigateway.ApiKeySourceType.HEADER,
             endpoint_configuration=apigateway.EndpointConfiguration(
@@ -145,21 +145,21 @@ class ChatOpsServiceNowDevOpsAgentIntegrationStack(Stack):
         )
 
         # Attach the integration to a resource and method, allowing POST requests.
-        # This line adds a new resource path "/servicenow_devops_middleman_lambda" to the API Gateway.
+        # This line adds a new resource path "/servicenow_devops_middleware_lambda" to the API Gateway.
         # It then associates a POST method with this resource.
         # The POST method is configured to use the previously defined `integration` (which sends messages to SQS).
         # Finally, it specifies that the method should respond with a 200 status code upon successful execution.
 
-        api.root.add_resource("servicenow_devops_middleman_lambda").add_method(
+        api.root.add_resource("servicenow_devops_middleware_lambda").add_method(
             "POST",
             integration,
             method_responses=[apigateway.MethodResponse(status_code="200")]
         )
 
         ## Phase 3: Configure Lambda to trigger from SQS (Consumer)
-        servicenow_devops_middleman_lambda.add_event_source(lambda_event_sources.SqsEventSource(queue, batch_size=10))
+        servicenow_devops_middleware_lambda.add_event_source(lambda_event_sources.SqsEventSource(queue, batch_size=10))
 
-        full_api_url = api.url + "servicenow_devops_middleman_lambda"
+        full_api_url = api.url + "servicenow_devops_middleware_lambda"
 
         # ServiceNow Business Rule Script Output
         sn_script = f"""copy the below code:
