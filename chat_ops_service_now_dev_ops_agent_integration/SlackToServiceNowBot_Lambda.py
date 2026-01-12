@@ -44,30 +44,55 @@ class slack_to_servicenow_devops_agent_integration(Stack):
         )
 
         ## create API Gateway to send message to receiver Lambda
+        # api = apigateway.RestApi(
+        #     self, "SlackToServiceNowDevOpsAgentIntegrationAPI",
+        #     rest_api_name="SlackToServiceNowDevOpsAgentIntegrationAPI",
+        #     description="API Gateway to receive Slack events and send to ServiceNow via lambda",
+        #     deploy_options=apigateway.StageOptions(
+        #         stage_name="default",
+        #         tracing_enabled=True,
+        #         logging_level=apigateway.MethodLoggingLevel.INFO,
+        #         data_trace_enabled=True,
+        #         metrics_enabled=True,
+        #         access_log_destination=apigateway.LogGroupLogDestination(api_gateway_log_group),
+        #         access_log_format=apigateway.AccessLogFormat.json_with_standard_fields(
+        #             caller=True,
+        #             http_method=True,
+        #             ip=True,
+        #             protocol=True,
+        #             request_time=True,
+        #             resource_path=True,
+        #             response_length=True,
+        #             status=True,
+        #             user=True
+        #         )
+        #     )
+        # )
+
         api = apigateway.RestApi(
             self, "SlackToServiceNowDevOpsAgentIntegrationAPI",
             rest_api_name="SlackToServiceNowDevOpsAgentIntegrationAPI",
-            description="API Gateway to receive Slack events and send to ServiceNow via lambda",
+            description="Created by AWS Lambda",
+            api_key_source_type=apigateway.ApiKeySourceType.HEADER,
+            endpoint_configuration=apigateway.EndpointConfiguration(
+                types=[apigateway.EndpointType.REGIONAL]
+            ),
+            # disable_execute_api_endpoint=False,
+
+            # Stage configuration
+            deploy=True,
             deploy_options=apigateway.StageOptions(
                 stage_name="default",
                 tracing_enabled=True,
-                logging_level=apigateway.MethodLoggingLevel.INFO,
                 data_trace_enabled=True,
-                metrics_enabled=True,
+                logging_level=apigateway.MethodLoggingLevel.INFO,
                 access_log_destination=apigateway.LogGroupLogDestination(api_gateway_log_group),
-                access_log_format=apigateway.AccessLogFormat.json_with_standard_fields(
-                    caller=True,
-                    http_method=True,
-                    ip=True,
-                    protocol=True,
-                    request_time=True,
-                    resource_path=True,
-                    response_length=True,
-                    status=True,
-                    user=True
-                )
+                description="Created by AWS Lambda",
             )
+
         )
+
+
         ## secrets manager
         secret = secretsmanager.Secret(
             self, "SlackToSnowBotSecret",
