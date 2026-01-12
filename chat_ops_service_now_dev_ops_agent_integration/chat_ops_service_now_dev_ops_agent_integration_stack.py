@@ -30,7 +30,7 @@ class ChatOpsServiceNowDevOpsAgentIntegrationStack(Stack):
         api_gateway_log_group = logs.LogGroup(
             self, "ApiGatewayLogGroup",
             retention=logs.RetentionDays.ONE_DAY,
-            removal_policy=RemovalPolicy.DESTROY, 
+            removal_policy=RemovalPolicy.DESTROY,
             log_group_name="/aws/apigateway/ApiGatewayToSQSRole"
         )
 
@@ -38,7 +38,9 @@ class ChatOpsServiceNowDevOpsAgentIntegrationStack(Stack):
         api_gateway_log_role = iam.Role(
             self, "ApiGatewayCloudWatchLogRole",
             assumed_by=iam.ServicePrincipal("apigateway.amazonaws.com"),
-            managed_policies=[iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AmazonAPIGatewayPushToCloudWatchLogs")]
+            managed_policies=[
+                iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AmazonAPIGatewayPushToCloudWatchLogs")
+            ]
         )
 
         # Set the CloudWatch Role ARN for the API Gateway Account
@@ -73,7 +75,7 @@ class ChatOpsServiceNowDevOpsAgentIntegrationStack(Stack):
         middleware_log_group = logs.LogGroup(
             self, "ServiceNowDevOpsMiddlemanLogGroup",
             retention=logs.RetentionDays.ONE_DAY,
-            removal_policy=RemovalPolicy.DESTROY, 
+            removal_policy=RemovalPolicy.DESTROY,
             log_group_name="/aws/lambda/slack-to-servicenow-devops-middleman"
         )
 
@@ -108,7 +110,7 @@ class ChatOpsServiceNowDevOpsAgentIntegrationStack(Stack):
                 types=[apigateway.EndpointType.REGIONAL]
             ),
             # disable_execute_api_endpoint=False,
-            
+
             # Stage configuration
             deploy=True,
             deploy_options=apigateway.StageOptions(
@@ -119,7 +121,7 @@ class ChatOpsServiceNowDevOpsAgentIntegrationStack(Stack):
                 access_log_destination=apigateway.LogGroupLogDestination(api_gateway_log_group),
                 description="Created by AWS Lambda",
             )
-            
+
         )
         api.node.add_dependency(api_gateway_account)
 
@@ -148,7 +150,11 @@ class ChatOpsServiceNowDevOpsAgentIntegrationStack(Stack):
         # The POST method is configured to use the previously defined `integration` (which sends messages to SQS).
         # Finally, it specifies that the method should respond with a 200 status code upon successful execution.
 
-        api.root.add_resource("servicenow_devops_middleman_lambda").add_method("POST", integration, method_responses=[apigateway.MethodResponse(status_code="200")])
+        api.root.add_resource("servicenow_devops_middleman_lambda").add_method(
+            "POST",
+            integration,
+            method_responses=[apigateway.MethodResponse(status_code="200")]
+        )
 
         ## Phase 3: Configure Lambda to trigger from SQS (Consumer)
         servicenow_devops_middleman_lambda.add_event_source(lambda_event_sources.SqsEventSource(queue, batch_size=10))

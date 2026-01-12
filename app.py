@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-import os
-
 import aws_cdk as cdk
-
 from chat_ops_service_now_dev_ops_agent_integration.chat_ops_service_now_dev_ops_agent_integration_stack import ChatOpsServiceNowDevOpsAgentIntegrationStack
 
 
