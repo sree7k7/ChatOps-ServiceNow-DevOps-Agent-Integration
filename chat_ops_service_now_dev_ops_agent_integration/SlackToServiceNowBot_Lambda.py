@@ -90,7 +90,7 @@ class slack_to_servicenow_devops_agent_integration(Stack):
             self, "SlackTosnow_api_to_receiver_lambda",
             function_name="SlackTosnow_api_to_receiver_lambda",
             runtime=_lambda.Runtime.PYTHON_3_9,
-            handler="slackToSnowBotViaAgent.lambda_handler",
+            handler="receiver_middleware_lambda.lambda_handler",
             code=_lambda.Code.from_asset("lambda"),
             memory_size=512,
             environment={
@@ -117,3 +117,28 @@ class slack_to_servicenow_devops_agent_integration(Stack):
             apigw_lambda_integration,
             method_responses=[apigateway.MethodResponse(status_code="200")]
         )
+
+        ## create sqs queue
+        queue = sqs.Queue(
+            self, "SlackToServiceNowDevOpsAgentIntegrationQueue",
+            queue_name="SlackToServiceNowIntegrationQueue",
+        )
+
+        # Grant lambda premission to send to SQS and pass the URL
+        queue.grant_send_messages(receiver_lambda)
+        receiver_lambda.add_environment("SQS_QUEUE_URL", queue.queue_url)
+
+
+    ## create workker middleware lambda to process the SQS messages and interact with ServiceNow
+        worker_lambda = _lambda.Function(
+            self, "SlackTosnow_worker_lambda",
+            function_name="SlackTosnow_worker_lambda",
+            runtime=_lambda.Runtime.PYTHON_3_9,
+            handler="worker_middleware_lambda.lambda_handler",
+            code=_lambda.Code.from_asset("lambda"),
+            memory_size=512,
+            environment={
+                "SECRET_ARN": secret.secret_arn
+            }
+        )
+        secret.grant_read(worker_lambda)
