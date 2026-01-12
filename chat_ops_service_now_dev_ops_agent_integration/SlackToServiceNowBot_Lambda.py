@@ -142,3 +142,16 @@ class slack_to_servicenow_devops_agent_integration(Stack):
             }
         )
         secret.grant_read(worker_lambda)
+
+
+        ## add SQS as event source for worker lambda
+        worker_lambda.add_event_source(
+            lambda_event_sources.SqsEventSource(queue)
+        )
+
+        ## outputs
+        CfnOutput(
+            self, "APIGatewayURL",
+            value=api.url,
+            description="API Gateway URL to receive Slack events",
+        )
