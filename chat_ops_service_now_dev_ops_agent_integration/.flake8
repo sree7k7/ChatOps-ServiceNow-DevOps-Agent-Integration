@@ -1,0 +1,13 @@
+[flake8]
+# E501: Line too long (using 120 to allow for some flexibility in CDK)
+# E203: Whitespace before ':' (black compatibility)
+# W503: Line break before binary operator (black compatibility)
+ignore = E203, W503
+max-line-length = 120
+exclude =
+    .git,
+    __pycache__,
+    cdk.out,
+    venv,
+    .venv,
+    node_modules
