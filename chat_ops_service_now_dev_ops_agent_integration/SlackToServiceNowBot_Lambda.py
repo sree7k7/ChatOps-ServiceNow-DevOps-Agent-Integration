@@ -42,3 +42,64 @@ class slack_to_servicenow_devops_agent_integration(Stack):
                 iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AmazonAPIGatewayPushToCloudWatchLogs")
             ],
         )
+
+        ## create API Gateway to send message to receiver Lambda
+        api = apigateway.RestApi(
+            self, "SlackToServiceNowDevOpsAgentIntegrationAPI",
+            rest_api_name="SlackToServiceNowDevOpsAgentIntegrationAPI",
+            description="API Gateway to receive Slack events and send to ServiceNow via lambda",
+            deploy_options=apigateway.StageOptions(
+                stage_name="default",
+                tracing_enabled=True,
+                logging_level=apigateway.MethodLoggingLevel.INFO,
+                data_trace_enabled=True,
+                metrics_enabled=True,
+                access_log_destination=apigateway.LogGroupLogDestination(api_gateway_log_group),
+                access_log_format=apigateway.AccessLogFormat.json_with_standard_fields(
+                    caller=True,
+                    http_method=True,
+                    ip=True,
+                    protocol=True,
+                    request_time=True,
+                    resource_path=True,
+                    response_length=True,
+                    status=True,
+                    user=True
+                )
+            )
+        )
+
+        ## receiver middleware lambda
+        receiver_lambda = _lambda.Function(
+            self, "SlackTosnow_api_to_receiver_lambda",
+            function_name="SlackTosnow_api_to_receiver_lambda",
+            runtime=_lambda.Runtime.PYTHON_3_9,
+            handler="SlackToServiceNowBot_Lambda.lambda_handler",
+            code=_lambda.Code.from_asset("lambda"),
+            memory_size=512,
+        )
+
+        ## intergration between api gateway and receiver lambda. api_gateway -> receiver_lambda
+        ## api gateway will send the request to receiver lambda
+        api_lambda_integration = apigateway.LambdaIntegration(
+            receiver_lambda,
+            proxy=False,
+            integration_responses=[
+                apigateway.IntegrationResponse(
+                    status_code="200",
+                    response_templates={"application/json": ""}
+                )
+            ]
+        )
+
+        # Attach the integration to a resource and method, allowing POST requests.
+        # This line adds a new resource path "/apiGateway_receiver_middleware" to the API Gateway.
+        # It then associates a POST method with this resource.
+        # The POST method is configured to use the previously defined `integration` (which sends messages to SQS).
+        # Finally, it specifies that the method should respond with a 200 status code upon successful execution.
+
+        api.root.add_resource("apiGateway_receiver_middleware").add_method(
+            "POST",
+            api_lambda_integration,
+            method_responses=[apigateway.MethodResponse(status_code="200")]
+        )
