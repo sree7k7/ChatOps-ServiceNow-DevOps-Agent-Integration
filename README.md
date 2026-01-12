@@ -14,8 +14,9 @@ ChatOps: Slack, servicenow - aws devops agent, serverless (lambda) middleware
   - [Future work](#future-work)
   - [Troubleshoot](#troubleshoot)
 
-## Architecture Diagram 
 
+
+## Architecture Diagram 
 
 ```mermaid
 sequenceDiagram
@@ -58,3 +59,28 @@ sequenceDiagram
     ChatBot-->>User: Resolution Confirmed
     deactivate ChatBot
 ```
+
+### High-Level Data Flow
+
+```mermaid
+graph LR
+    subgraph "Phase 1: ChatOps (Async)"
+        Slack -->|Command| API[API Gateway]
+        API --> Receiver[Receiver Lambda]
+        Receiver --> SQS
+        SQS --> Worker[Worker Lambda]
+    end
+
+    subgraph "Phase 2: Execution"
+        Worker -->|Update State| SN[ServiceNow]
+        Worker -.->|Success Msg| Slack
+    end
+
+    subgraph "Phase 3: Auto-Sync"
+        SN -->|Business Rule| MidLambda[Middleware Lambda]
+        MidLambda -->|Signed Req| Agent[AWS Agent]
+    end
+```
+
+
+a full-cycle "AIOps" integration: Detection (ServiceNow) → Investigation (AWS Agent) → Remediation/Closure (Slack ChatOps).
