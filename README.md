@@ -21,6 +21,8 @@ This project helps in investigating raised incidents in ServiceNow automatically
 
 ## Architecture Design
 
+![image](pics/slack-snow.png)
+
 ```mermaid
 sequenceDiagram
     autonumber
