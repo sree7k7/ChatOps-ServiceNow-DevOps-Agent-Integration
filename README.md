@@ -115,7 +115,7 @@ graph LR
 ```
 git clone [https://github.com/sree7k7/ChatOps-ServiceNow-DevOps-Agent-Integration.git](https://github.com/sree7k7/ChatOps-ServiceNow-DevOps-Agent-Integration.git)
 uv sync
-cdk deploy
+cdk deploy --all
 ```
 **Note:** Save the output script/URL from the terminal; you will need this for the ServiceNow Business Rule.
 
