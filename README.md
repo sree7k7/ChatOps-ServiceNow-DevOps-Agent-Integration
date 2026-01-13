@@ -1,6 +1,6 @@
 # ChatOps: Slack, ServiceNow & AWS DevOps Agent
 
-![Build Status](https://img.shields.io/github/actions/workflow/status/sree7k7/ChatOps-ServiceNow-DevOps-Agent-Integration/deploy.yaml?branch=master&label=AWS%20Deploy&style=flat-square)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/sree7k7/ChatOps-ServiceNow-DevOps-Agent-Integration/deploy.yaml?branch=master&label=AWS%20Deploy&style=flat-square)](https://github.com/sree7k7/ChatOps-ServiceNow-DevOps-Agent-Integration/actions/workflows/deploy.yaml)
 
 ## 📋 Table of Contents
 - [Purpose](#purpose)
