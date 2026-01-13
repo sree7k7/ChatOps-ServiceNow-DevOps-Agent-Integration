@@ -34,15 +34,6 @@ class slack_to_servicenow_devops_agent_integration(Stack):
             log_group_name="/aws/apigateway_slack/ApiGatewayToSQSRole"
         )
 
-        # Create IAM Role for API Gateway CloudWatch Logging
-        api_gateway_log_role = iam.Role(
-            self, "ApiGatewayCloudWatchLogRole",
-            assumed_by=iam.ServicePrincipal("apigateway.amazonaws.com"),
-            managed_policies=[
-                iam.ManagedPolicy.from_aws_managed_policy_name("service-role/AmazonAPIGatewayPushToCloudWatchLogs")
-            ],
-        )
-
         ## create API Gateway to send message to receiver Lambda
 
         api = apigateway.RestApi(
@@ -86,14 +77,23 @@ class slack_to_servicenow_devops_agent_integration(Stack):
         secret.grant_read(api_gateway_role)
 
 
+        ## Log Group for Receiver Lambda
+        receiver_log_group = logs.LogGroup(
+            self, "ReceiverLambdaLogGroup",
+            log_group_name="/aws/lambda/SlackToSNOW_ApiGW_to_Receiver_Lambda",
+            retention=logs.RetentionDays.ONE_DAY,
+            removal_policy=RemovalPolicy.DESTROY
+        )
+
         ## receiver middleware lambda
         receiver_lambda = _lambda.Function(
-            self, "SlackTosnow_api_to_receiver_lambda",
-            function_name="SlackTosnow_api_to_receiver_lambda",
-            runtime=_lambda.Runtime.PYTHON_3_9,
+            self, "SlackToSNOW_ApiGW_to_Receiver_Lambda",
+            function_name="SlackToSNOW_ApiGW_to_Receiver_Lambda",
+            runtime=_lambda.Runtime.PYTHON_3_14,
             handler="receiver_middleware_lambda.lambda_handler",
             code=_lambda.Code.from_asset("lambda"),
-            memory_size=512,
+            memory_size=128,
+            log_group=receiver_log_group,
             environment={
                 "SECRET_ARN": secret.secret_arn
             }
@@ -130,14 +130,23 @@ class slack_to_servicenow_devops_agent_integration(Stack):
         receiver_lambda.add_environment("SQS_QUEUE_URL", queue.queue_url)
 
 
+        ## Log Group for Worker Lambda
+        worker_log_group = logs.LogGroup(
+            self, "WorkerLambdaLogGroup",
+            log_group_name="/aws/lambda/SlackToSNOW_SQS_To_Worker_Lambda",
+            retention=logs.RetentionDays.ONE_DAY,
+            removal_policy=RemovalPolicy.DESTROY
+        )
+
     ## create workker middleware lambda to process the SQS messages and interact with ServiceNow
         worker_lambda = _lambda.Function(
-            self, "SlackTosnow_worker_lambda",
-            function_name="SlackTosnow_worker_lambda",
-            runtime=_lambda.Runtime.PYTHON_3_9,
+            self, "SlackToSNOW_worker_lambda",
+            function_name="SlackToSNOW_SQS_To_Worker_Lambda",
+            runtime=_lambda.Runtime.PYTHON_3_14,
             handler="worker_middleware_lambda.lambda_handler",
             code=_lambda.Code.from_asset("lambda"),
-            memory_size=512,
+            memory_size=128,
+            log_group=worker_log_group,
             environment={
                 "SECRET_ARN": secret.secret_arn
             }

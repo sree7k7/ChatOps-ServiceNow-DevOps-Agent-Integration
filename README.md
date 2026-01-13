@@ -1,78 +1,76 @@
-ChatOps: Slack, servicenow - aws devops agent, serverless (lambda) middleware 
+# ChatOps: Slack, ServiceNow & AWS DevOps Agent
 
 ![Build Status](https://img.shields.io/github/actions/workflow/status/sree7k7/ChatOps-ServiceNow-DevOps-Agent-Integration/deploy.yaml?branch=master&label=AWS%20Deploy&style=flat-square)
 
-## Run
+## 📋 Table of Contents
+- [Purpose](#purpose)
+- [Architecture Design](#architecture-design)
+- [Data Flow](#data-flow)
+- [Implementation Guide](#-implementation-guide)
+  - [Prerequisites](#prerequisites)
+  - [Phase 1: AWS Configuration](#phase-1-aws-configuration)
+  - [Phase 2: ServiceNow Implementation](#phase-2-servicenow-implementation)
+  - [Phase 3: Slack Implementation](#phase-3-slack-implementation)
+- [Future Work](#future-work)
+- [Troubleshoot](#troubleshoot)
 
-  - [Purpose:](#purpose)
-  - [Architecture Design](#architecture-design)
-  - [🚀 Implementation Guide](#-implementation-guide)
-      - [Phase 1: AWS Configuration](#phase-1-aws-configuration)
-      - [Phase 2: ServiceNow Implementation](#phase-2-servicenow-implementation)
-      - [Phase 3: Slack Implementation](#phase-3-slack-implementation)
-  - [Future work](#future-work)
-  - [Troubleshoot](#troubleshoot)
+## Purpose
+A full-cycle "AIOps" integration: **Detection** (ServiceNow) → **Investigation** (AWS Agent) → **Remediation/Closure** (Slack ChatOps).
 
+This project helps in investigating raised incidents in ServiceNow automatically and resolving tickets directly using Slack commands.
 
-### Purpose
-
-A full-cycle "AIOps" integration: Detection (ServiceNow) → Investigation (AWS Agent) → Remediation/Closure (Slack ChatOps). 
-This project helps investiagting the raised incidents in SNOW, and resolving the ticket using slack.
-
-
-### Architecture Design
+## Architecture Design
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Customer
     participant SN as ServiceNow
-    participant API as API Gateway
-    participant SQS as SQS Queue
+    participant AWS_SN as AWS Ingest (API+SQS)
     participant MidLambda as Middleware Lambda
     participant Agent as DevOps Agent
-    participant ChatBot as Slack ChatBot
-    actor User as Slack User
+    
+    actor User as Slack User (Human)
+    participant Slack
+    participant AWS_Chat as AWS Chat Stack (API+SQS)
+    participant Worker as Worker Lambda
 
-    Note over Customer, Agent: Phase 1: Incident & Investigation
+    Note over Customer, Agent: Phase 1: Automated Investigation
     Customer->>SN: Creates Incident
-    SN->>API: POST /webhook (New Incident)
-    API->>SQS: Send Message
-    SQS->>MidLambda: Trigger Function
+    SN->>AWS_SN: POST /webhook
+    AWS_SN->>MidLambda: Trigger via SQS
     activate MidLambda
-    MidLambda->>MidLambda: Fetch Secrets
-    MidLambda->>Agent: Trigger Investigation
+    MidLambda->>Agent: Start Investigation
     deactivate MidLambda
+    
     activate Agent
-    Agent->>Agent: Run Diagnostics / RCA
-    Agent->>SN: Update Ticket (Root Cause Found)
+    Agent->>Agent: Analyze Logs & Suggest Fixes
+    Note right of Agent: Agent updates AWS Dashboard
     deactivate Agent
 
-    Note over User, SN: Phase 2: ChatOps Management
-    User->>ChatBot: Check Status (INC12345)
-    activate ChatBot
-    ChatBot->>SN: GET /incident/INC12345
-    SN-->>ChatBot: Return Status & Notes
-    ChatBot-->>User: Display Status
-    deactivate ChatBot
-
-    User->>ChatBot: Resolve Ticket (INC12345)
-    activate ChatBot
-    ChatBot->>SN: PATCH /incident (State=Resolved)
-    SN-->>ChatBot: 200 OK
-    ChatBot-->>User: Resolution Confirmed
-    deactivate ChatBot
+    Note over User, Worker: Phase 2: Human Decision (ChatOps)
+    User->>User: Reviews Agent Findings
+    User->>Slack: /ops-resolve INC123
+    Slack->>AWS_Chat: POST Command
+    AWS_Chat-->>Slack: "Processing..."
+    
+    AWS_Chat->>Worker: Trigger via SQS
+    activate Worker
+    Worker->>SN: PATCH /incident (Resolved)
+    SN-->>Worker: 200 OK
+    Worker->>Slack: POST Result
+    deactivate Worker
+    Slack-->>User: "✅ Resolution Confirmed"
 ```
 
 ### Data Flow
-
 ```mermaid
 graph LR
-    subgraph "Phase 1: ChatOps (Async)"
-        Slack -->|Command| API[API Gateway]
-        API --> Receiver[Receiver Lambda]
-        Receiver --> SQS
-        SQS --> Worker[Worker Lambda]
+    subgraph "Phase 1: ChatOps (Slack to SN)"
+        Slack -->|Command| API_Chat[API Gateway]
+        API_Chat --> Receiver[Receiver Lambda]
+        Receiver --> SQS_Chat[SQS Queue]
+        SQS_Chat --> Worker[Worker Lambda]
     end
 
     subgraph "Phase 2: Execution"
@@ -80,97 +78,86 @@ graph LR
         Worker -.->|Success Msg| Slack
     end
 
-    subgraph "Phase 3: Auto-Sync"
-        SN -->|Business Rule| MidLambda[Middleware Lambda]
-        MidLambda -->|Signed Req| Agent[AWS Agent]
+    subgraph "Phase 3: Auto-Sync (SN to Agent)"
+        SN -->|Business Rule| API_SN[API Gateway]
+        API_SN --> SQS_SN[SQS Queue]
+        SQS_SN --> MidLambda[Middleware Lambda]
+        MidLambda -->|Signed Req| Agent[AWS DevOps Agent]
     end
 ```
 
-***Slack → API Gateway:***
-Slacks sends the payload to the API Gateway.
+**Logic Explanation**
+***Slack → API Gateway:*** Slack sends the payload (command) to the API Gateway.
 
-***API Gateway → Receiver Lambda:***
-This means API Gateway passes the request directly to the Lambda function.
+***Receiver Lambda:*** Verifies the Slack HMAC signature for security, pushes the message to SQS, and responds immediately with "Processing..." to prevent Slack timeouts.
 
-***Receiver Lambda → SQS:***
-Receiver Lambda: Verifies Slack signature, pushes message to SQS, and responds immediately ("Processing request...")
+***SQS Buffer:*** Buffers commands during traffic spikes to ensure no requests are dropped.
 
-***SQS → Worker Lambda:***
-SQS (Buffers commands during spikes) sends the messages as events to the Lambda function. 
-Worker Lambda: Picks up messages from the queue and does the heavy lifting (calling ServiceNow).
-Worker Lambda sends the final "***Success***" message back to Slack.
+***Worker Lambda:*** Picks up messages from the queue, performs the API call to ServiceNow (Resolution), and sends the final Success message back to Slack via the response_url.
 
-***Slack Callback (response_url):***
+### Implementation Guide
 
-Since the Receiver already replied "200 OK", the Worker can't "reply" to the original request.
-
-Instead, Slack sends a special URL (response_url) in the payload. The Worker uses this URL to post the final "Success" message back to the chat.
-
-### 🚀 Implementation Guide
+#### Prerequisites
+- AWS CLI & CDK installed.
+- Python 3.12+ and uv installed.
+- ServiceNow Developer Instance.
 
 #### Phase 1: AWS Configuration
+1. Configure AWS DevOps Agent 🤖
+
+    - Navigate to AWS Console → DevOps Agent.
+    - Create a Generic Webhook.
+    - Save the Webhook URL and Secret Key.
+
+2. Deploy Resources
+```
+git clone [https://github.com/sree7k7/ChatOps-ServiceNow-DevOps-Agent-Integration.git](https://github.com/sree7k7/ChatOps-ServiceNow-DevOps-Agent-Integration.git)
+uv sync
+cdk deploy
+```
+**Note:** Save the output script/URL from the terminal; you will need this for the ServiceNow Business Rule.
+
+3. 🔐 Secrets Manager Setup The CDK creates a placeholder secret. You must update it manually.
+
+    - Go to AWS Console > Secrets Manager.
+    - Find the secret named SlackToSnowBotSecret.
+    - Click Retrieve Secret Value → Edit.
+    - Replace the JSON with your actual credentials:
+```json
+{
+  "slack_signing_secret": "YOUR_SLACK_SIGNING_SECRET",
+  "sn_instance": "dev12345",
+  "sn_user": "admin",
+  "sn_pass": "YOUR_SERVICENOW_PASSWORD"
+}
+```
 
 #### Phase 2: ServiceNow Implementation
+1. Access Instance: Log in to your ServiceNow Developer Portal.
+
+2. Create Business Rule:
+
+    - Navigate to System Definition → Business Rules.
+    - Click New.
+    - Name: Notify AWS DevOps Agent.
+    - Table: Incident [incident].
+    - When: After (Insert/Update).
+    - Advanced: Paste the script provided in the CDK Output.
 
 #### Phase 3: Slack Implementation
+1. Create App: Go to api.slack.com/apps → Create New App (From Scratch) → Name it OpsBot.
 
-Step 1: Create the Slack App
-We need a "dummy" app in Slack to listen for your command.
+2. Credentials: Copy the Signing Secret (Basic Information tab).
 
-Go to api.slack.com/apps and click Create New App.
+3. Slash Command:
+    - Go to Slash Commands → Create New Command.
+    - Command: `/ops-resolve`
+    - Request URL: Paste your API Gateway URL (from CDK Output).
+    - Usage Hint: `INC12345`
+    - Install: Click Install App to Workspace.
+4. Install: Click Install App to Workspace.
 
-Select From scratch.
-
-App Name: OpsBot.
-
-Workspace: Select your workspace.
-
-Basic Information:
-
-Scroll down to App Credentials.
-
-Copy the "Signing Secret". (You will need this for the Lambda).
-
-Step 2: Expose via API Gateway
-Slack needs a public URL to send the command to.
-
-In your Lambda function, go to the Configuration tab.
-
-Select Triggers > Add trigger.
-
-Select API Gateway.
-
-Intent: Create a new API.
-
-API type: HTTP API.
-
-Security: Open (Slack handles security via the Signature we implemented).
-
-Click Add.
-
-Copy the "API Endpoint" URL. (It looks like https://xyz...amazonaws.com/default/SlackToServiceNowBot)
-
-Step 4: Finish Slack Configuration
-Go back to your Slack App dashboard.
-
-Click Slash Commands (Sidebar) > Create New Command.
-
-Command: /ops-resolve
-
-Request URL: Paste your API Gateway URL from Step 3.
-
-Short Description: Resolve a ServiceNow incident.
-
-Usage Hint: [incident_number]
-
-Click Save.
-
-Important: Click Install App (Sidebar) > Install to Workspace.
-
-Step 5: Test
-
-Slack: Type /ops-resolve INC12345.
-
-Slack Response: "✅ Success! INC12345 has been Resolved."
-ServiceNow: Refresh the ticket.
-Status: Should be Closed/Resolved.
+✅ Testing
+1. Slack: Type /ops-resolve INC12345.
+2. Response: You should see "⏳ Processing..." followed by "✅ Success!".
+3. ServiceNow: The ticket state should change to Resolved.

@@ -13,6 +13,10 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 http = urllib3.PoolManager()
 
+# Initialize Clients Globally
+SECRETS_CLIENT = boto3.client('secretsmanager')
+SQS_CLIENT = boto3.client('sqs')
+
 def verify_slack_signature(headers, body, secret):
     timestamp = headers.get('x-slack-request-timestamp', '')
     signature = headers.get('x-slack-signature', '')
@@ -26,10 +30,8 @@ def lambda_handler(event, context):
     try:
         # Retrieve secrets
         secret_arn = os.environ['SECRET_ARN']
-        client = boto3.client('secretsmanager')
-        response = client.get_secret_value(SecretId=secret_arn)
+        response = SECRETS_CLIENT.get_secret_value(SecretId=secret_arn)
         secrets = json.loads(response['SecretString'])
-        
         SLACK_SIGNING_SECRET = secrets['slack_signing_secret']
 
         # 1. Parse Slack Input
@@ -43,34 +45,35 @@ def lambda_handler(event, context):
             logger.error("Signature verification failed")
             return {'statusCode': 401, 'body': "Invalid Signature"}
 
-        # 3. Extract Ticket Number
+        # 3. Extract Command & Ticket
         params = parse_qs(raw_body)
-        command_text = params.get('text', [''])[0].strip()
+        ticket_text = params.get('text', [''])[0].strip()
         response_url = params.get('response_url', [''])[0]
         user_id = params.get('user_id', [''])[0]
+        command_name = params.get('command', [''])[0] # Extract /ops-status or /ops-resolve
 
-        logger.info(f"Received Command for: {command_text}")
+        logger.info(f"Received {command_name} for: {ticket_text}")
         
-        if not command_text.startswith("INC"):
-            return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({"text": "❌ Invalid Ticket Number"})}
+        if not ticket_text.startswith("INC"):
+            return {'statusCode': 200, 'headers': {'Content-Type': 'application/json'}, 'body': json.dumps({"text": "❌ Invalid Ticket Number. Use format INC000..."})}
 
-        # 4. SEND TO SQS (Async Processing)
-        sqs = boto3.client('sqs')
+        # 4. SEND TO SQS (Pass the action type)
         queue_url = os.environ['SQS_QUEUE_URL']
         
         message_payload = {
-            "ticket_number": command_text,
+            "action": command_name,  # <--- NEW FIELD
+            "ticket_number": ticket_text,
             "response_url": response_url,
             "user_id": user_id
         }
         
-        sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_payload))
+        SQS_CLIENT.send_message(QueueUrl=queue_url, MessageBody=json.dumps(message_payload))
 
-        # 5. Immediate Response to Slack
+        # 5. Immediate Response
         return {
             'statusCode': 200, 
             'headers': {'Content-Type': 'application/json'}, 
-            'body': json.dumps({"text": f"⏳ Received request for {command_text}. Processing..."})
+            'body': json.dumps({"text": f"⏳ Checking {ticket_text}..."})
         }
 
     except Exception as e:

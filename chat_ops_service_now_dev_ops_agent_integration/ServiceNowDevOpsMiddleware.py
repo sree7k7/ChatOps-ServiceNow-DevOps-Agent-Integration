@@ -84,7 +84,7 @@ class ServiceNowMiddlewareStack(Stack):
         servicenow_devops_middleware_lambda = _lambda.Function(
             self, "ServiceNowDevOpsmiddlewareLambda",
             function_name="servicenow_devops_middleware_lambda",
-            runtime=_lambda.Runtime.PYTHON_3_12,
+            runtime=_lambda.Runtime.PYTHON_3_14,
             handler="servicenow-devops-middleware.lambda_handler",
             code=_lambda.Code.from_asset("lambda"),
             environment={
